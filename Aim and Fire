@@ -1,0 +1,95 @@
+from robomaster import robot
+from robomaster import vision
+import time
+import cv2
+from robomaster import blaster
+class MarkerInfo:
+
+    def __init__(self, x, y, w, h, info):
+        self._x = x
+        self._y = y
+        self._w = w
+        self._h = h
+        self._info = info
+
+    @property
+    def pt1(self):
+        return int((self._x - self._w / 2) * 1280), int((self._y - self._h / 2) * 720)
+    @property
+    def centre(self):
+         return (self._x), (self._y)
+    @property
+    def point_2(self):
+         return ((self._x + self._w / 2)), int((self._y + self._h / 2))
+
+    @property
+    def pt2(self):
+        return int((self._x + self._w / 2) * 1280), int((self._y + self._h / 2) * 720)
+
+    @property
+    def center(self):
+        return int(self._x * 1280), int(self._y * 720)
+
+    @property
+    def text(self):
+        return self._info
+
+
+markers = []
+
+
+def on_detect_marker(marker_info):
+    number = len(marker_info)
+    markers.clear()
+    for i in range(0, number):
+        x, y, w, h, info = marker_info[i]
+        markers.append(MarkerInfo(x, y, w, h, info))
+        # print("marker:{0} x:{1}, y:{2}, w:{3}, h:{4}".format(info, x, y, w, h))
+
+def sub_data_handler(angle_info):
+    pitch_angle, yaw_angle, pitch_ground_angle, yaw_ground_angle = angle_info
+
+x1=0
+y1=0
+
+
+if __name__=='__main__':
+    ep_robot=robot.Robot()
+    ep_robot.initialize(conn_type="ap")
+    gimbal=ep_robot.gimbal
+    gimbal.recenter().wait_for_completed()
+    vision=ep_robot.vision
+    camera = ep_robot.camera
+    result = vision.unsub_detect_info(name="marker")
+    camera.start_video_stream(display=False)
+    result = vision.sub_detect_info(name="marker", callback=on_detect_marker)
+    # gun=ep_robot.blaster
+    k=cv2.waitKey(0) & 0xFF
+    while True:
+        img = camera.read_cv2_image(strategy="newest", timeout=0.5)
+        for j in range(0, len(markers)):
+            cv2.rectangle(img, markers[j].pt1, markers[j].pt2, (255, 255, 255))
+            cv2.putText(img, markers[j].text, markers[j].center, cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 3)
+        cv2.imshow("Markers", img)
+        cv2.waitKey(1)
+        if markers==[]:
+            pass
+            # elif k==ord('s'):
+            #     cv2.destroyAllWindows()
+            #     camera.stop_video_stream()
+            #     ep_robot.close()
+        else:
+            #     # print(markers[0].point_1,markers[0].point_2)
+            x1,y1=markers[0].centre
+            #     # gun.fire(times=1)
+            #     # time.sleep(3)
+            #     print(x1,y1)
+            print(x1,y1)
+            gimbal.moveto(yaw=x1*(24),pitch=y1*(-12),yaw_speed=100).wait_for_completed()
+
+        #
+    # gimbal.sub_angle(freq=5, callback=sub_data_handler)
+
+    # result = vision.unsub_detect_info(name="marker")
+
+
